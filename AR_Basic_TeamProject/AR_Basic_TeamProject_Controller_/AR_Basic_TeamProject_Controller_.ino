@@ -6,37 +6,95 @@
 #define NBR_MTX 1
 
 //Dot Matrix
-LedControl lc = LedControl(10, 11, 12, NBR_MTX);
+LedControl lc = LedControl(6, 5, 4, NBR_MTX);
 
-byte help[] = {
-  B00000000,
-  B00000000,
-  B00000000,
-  B00000000,
-  B00000000,
-  B00000000,
-  B00000000,
-  B00000000
+byte help[4][8] = {
+  {
+  B10000001,
+  B10000001,
+  B10000001,
+  B11111111,
+  B10000001,
+  B10000001,
+  B10000001,
+  B10000001
+},{
+  B11111111,
+  B10000000,
+  B10000000,
+  B11111111,
+  B10000000,
+  B10000000,
+  B10000000,
+  B11111111
+},{
+  B10000000,
+  B10000000,
+  B10000000,
+  B10000000,
+  B10000000,
+  B10000000,
+  B10000000,
+  B11111111
+},{
+  B01111110,
+  B10000001,
+  B10000001,
+  B11111110,
+  B10000000,
+  B10000000,
+  B10000000,
+  B10000000
+}
 };
 
-byte safe[] = {
-  B00000000,
-  B00000000,
-  B00000000,
-  B00000000,
-  B00000000,
-  B00000000,
-  B00000000,
-  B00000000
+byte safe[4][8] = {
+  {
+  B11111111,
+  B10000000,
+  B10000000,
+  B11111111,
+  B00000001,
+  B00000001,
+  B00000001,
+  B11111111
+},{
+  B01111110,
+  B10000001,
+  B10000001,
+  B11111111,
+  B10000001,
+  B10000001,
+  B10000001,
+  B10000001
+},{
+  B11111111,
+  B10000000,
+  B10000000,
+  B11111111,
+  B10000000,
+  B10000000,
+  B10000000,
+  B10000000
+},{
+  B01111111,
+  B10000000,
+  B10000000,
+  B11111111,
+  B10000000,
+  B10000000,
+  B10000000,
+  B01111111
+}
 };
 //
 
 //LCD
-LiquidCrystal_I2C lcd(0x3f, 16, 2);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 //
 
 //potentiometer
-const int pin_potentio = 0;
+const int pin_potentio = A2;
 
 //key pad
 const byte rows = 4;
@@ -56,8 +114,8 @@ Keypad keypad = Keypad(makeKeymap(keys), pin_keypad_rows, pin_keypad_cols, rows,
 
 
 //joystick
-const int pin_xAxis = 1;
-const int pin_yAxis = 2;
+const int pin_xAxis = A0;
+const int pin_yAxis = A1;
 const int pin_zAxis = 3;
 //
 
@@ -109,8 +167,7 @@ void loop() {
   joystick();
   community();
   print_lcd();
-  dot_matrix();
-  
+  dot_matrix();  
 }
 
 void community(){
@@ -127,7 +184,7 @@ void community(){
     }
 
     String TX;
-    sprintf(buf, "b)'%3d''%4d''%4d''%1d'", CurrentSpeed, xValue, yValue);
+    sprintf(buf, "b)%3d%4d%4d", CurrentSpeed, xValue, yValue);
     TX = buf;
     
     TX += zValue == HIGH ? "1" : "0";
@@ -136,34 +193,51 @@ void community(){
 }
 
 void dot_matrix(){
-  if(state == '1') print_help();
-  else if(state == '2') print_safe();
+  if(state == '1') print_safe();
+  else if(state == '2') print_help();
   else;
+
 }
 
 void print_help(){
-  for(int i = 0; i < 8; i++)
-    lc.setRow(0, i, help[i]);
+  for(int a=0;a<=2;a++) {
+  for(int i = 0; i < 4; i++) {
+    for(int j=0;j<8;j++)
+      lc.setRow(0, j, help[i][j]);
+    delay(500);
+  }
+  }
 }
 
 void print_safe(){
-  for(int i = 0; i < 8; i++)
-    lc.setRow(0, i, safe[i]);
+  for(int a=0;a<=2;a++) {
+  for(int i = 0; i < 4; i++) {
+    for(int j=0;j<8;j++)
+      lc.setRow(0, j, safe[i][j]);
+   delay(500); 
+  }
+  }
 }
-
+//
 void print_lcd(){
   lcd.clear();
 
   lcd.setCursor(0, 0);
-  lcd.print("Temp = ");
+  lcd.print("Temp=");
+  lcd.setCursor(5, 0);
   lcd.print(temperature);
 
-  lcd.print("humid = ");
+  lcd.setCursor(8, 0);
+  lcd.print("humid=");
+  lcd.setCursor(14,0);
   lcd.print(humidity);
 
   lcd.setCursor(0, 1);
   lcd.print("Speed = ");
+  lcd.setCursor(8,1);
   lcd.print(CurrentSpeed);
+
+  delay(400);
 }
 
 void potentiometer(){

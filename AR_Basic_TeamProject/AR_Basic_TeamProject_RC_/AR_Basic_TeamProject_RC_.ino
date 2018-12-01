@@ -1,4 +1,4 @@
-#include <DHT11.h>
+#include <DHT.h>
 
 //motor_driver
   const int motorA_front = 8;
@@ -16,21 +16,23 @@ const int pin_trig = 13;
 //
 
 //CdS
-const int pin_CdS = 0;
+const int pin_CdS = A0;
 //
 
 //Button
-const int button1 = 2;
-const int button2 = 3;
+const int button1 = 11;
+const int button2 = 10;
 //
 
 //LED
-const int pin_led = 10;
+const int pin_led = 3;
 //
 
 //Temp_Humid
-  const int pin_dht = 1;
-  DHT11 dht11(pin_dht);
+  #define DHTPIN 2
+  #define DHTTYPE DHT11
+
+  DHT dht(DHTPIN, DHTTYPE);
 //
 
 void setup() {
@@ -71,6 +73,10 @@ bool zValue = false;
 
 float temperature = 0;
 float humidity = 0;
+
+int temp = 0;
+int humid = 0;
+
 int bright = 0;
 int state = 0;
 
@@ -78,9 +84,10 @@ char buf[80];
 
 void loop() {
   temp_humid();
+  button();
   CdS();
-  ultrasonic();
   community();
+  ultrasonic();
   motor_driver();
 }
 
@@ -97,12 +104,14 @@ void community(){
     xValue = (data.substring(5, 9)).toInt();
     yValue = (data.substring(9, 13)).toInt();
 
+    Serial.println(xValue);
+    Serial.println(yValue);
     if(data[13] == '1') zValue = true;
     else zValue = false;
   }
 
   String TX;
-  sprintf(buf, "a)'%2.1f''%2.1f''%1d'",temperature, humidity, state);
+  sprintf(buf, "a)%3d%3d%1d",temp, humid, state);
   TX = buf;
 
   Serial.println(TX);
@@ -111,38 +120,51 @@ void community(){
 
 //motor_driver
 void motor_driver(){
+  digitalWrite(motorA_front, LOW);
+  digitalWrite(motorA_rear, LOW);
+  digitalWrite(motorB_front, LOW);
+  digitalWrite(motorB_rear, LOW);
+  
+  analogWrite(motorA_speed, 0);
+  analogWrite(motorB_speed, 0);
+  
+  if(xValue < 100){//left
+    digitalWrite(motorA_front, LOW);
+    digitalWrite(motorA_rear, HIGH);
+
+    digitalWrite(motorB_front, HIGH);
+    digitalWrite(motorB_rear, LOW);
   analogWrite(motorA_speed, CurrentSpeed);
   analogWrite(motorB_speed, CurrentSpeed);
+  }
+  if(xValue > 900){//right
+    digitalWrite(motorA_front, HIGH);
+    digitalWrite(motorA_rear, LOW);
+
+    digitalWrite(motorB_front, LOW);
+    digitalWrite(motorB_rear, HIGH);
+  analogWrite(motorA_speed, CurrentSpeed);
+  analogWrite(motorB_speed, CurrentSpeed);
+  }
+  if(yValue < 100){//front
+    digitalWrite(motorA_front, HIGH);
+    digitalWrite(motorA_rear, LOW);
+
+    digitalWrite(motorB_front, HIGH);
+    digitalWrite(motorB_rear, LOW);  
+  analogWrite(motorA_speed, CurrentSpeed);
+  analogWrite(motorB_speed, CurrentSpeed);
+  }
+  if(yValue > 900){//back
+    digitalWrite(motorA_front, LOW);
+    digitalWrite(motorA_rear, HIGH);
+
+    digitalWrite(motorB_front, LOW);
+    digitalWrite(motorB_rear, HIGH);
+  analogWrite(motorA_speed, CurrentSpeed);
+  analogWrite(motorB_speed, CurrentSpeed);
+    }
   
-  if(xValue < 100){
-    digitalWrite(motorA_front, LOW);
-    digitalWrite(motorA_rear, HIGH);
-
-    digitalWrite(motorB_front, HIGH);
-    digitalWrite(motorB_rear, LOW);
-  }
-  if(xValue > 900){
-    digitalWrite(motorA_front, HIGH);
-    digitalWrite(motorA_rear, LOW);
-
-    digitalWrite(motorB_front, LOW);
-    digitalWrite(motorB_rear, HIGH);
-  }
-  if(yValue < 100){
-    digitalWrite(motorA_front, LOW);
-    digitalWrite(motorA_rear, HIGH);
-
-    digitalWrite(motorB_front, LOW);
-    digitalWrite(motorB_rear, HIGH);
-  }
-  if(xValue > 900){
-    digitalWrite(motorA_front, HIGH);
-    digitalWrite(motorA_rear, LOW);
-
-    digitalWrite(motorB_front, HIGH);
-    digitalWrite(motorB_rear, LOW);
-  }
-
   delay(100);
 }
 //
@@ -157,6 +179,9 @@ void ultrasonic(){
 
   duration = pulseIn(pin_echo, HIGH);
   distance = ((float)(340 * duration) / 10000 ) / 2; //cm
+
+  if(distance < 30)
+    CurrentSpeed = 0;
 }
 //
   
@@ -177,21 +202,23 @@ void CdS(){
   
 //Button
 void button(){
-    if(button1 == LOW)  state = 1;
-    if(button2 == LOW)  state = 2;
+  int swVal1 = digitalRead(button1);
+  int swVal2 = digitalRead(button2);
+  
+  if(swVal1 == LOW)  state = 1;
+  if(swVal2 == LOW)  state = 2;
 
-    if(button1 == HIGH && button2 == HIGH) state = 0;
+  if(swVal1 == HIGH && swVal2 == HIGH) state = 0;
 }
 //
   
 //Temp_Humid
 void temp_humid(){
-    int err;
-    err = dht11.read(humidity, temperature);
-
-    if(err != 0){
-      humidity = 0;
-      temperature = 0;
-    }
+  humidity = dht.readHumidity();  // 변수 h에 습도 값을 저장 
+  temperature = dht.readTemperature();  // 변수 t에 온도 값을 저장
+  
+  humid = (int)(humidity);
+  temp = (int)(temperature);
+  delay(100);
 }
 //
