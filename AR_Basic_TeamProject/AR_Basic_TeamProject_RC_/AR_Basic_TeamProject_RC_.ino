@@ -1,5 +1,3 @@
-#include <DHT.h>
-
 //motor_driver
   const int motorA_front = 8;
   const int motorA_rear = 7;
@@ -29,6 +27,7 @@ const int pin_led = 3;
 //
 
 //Temp_Humid
+  #include <DHT.h>
   #define DHTPIN 2
   #define DHTTYPE DHT11
 
@@ -36,7 +35,7 @@ const int pin_led = 3;
 //
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   
   //motor_driver
   pinMode(motorA_front, OUTPUT);
@@ -79,6 +78,7 @@ int humid = 0;
 
 int bright = 0;
 int state = 0;
+bool front_state = false;
 
 char buf[80];
 
@@ -98,14 +98,12 @@ void community(){
     char temp = Serial.read();
     data.concat(temp);
   }
-
+  delay(10);
   if(data[0] == 'b'){
     CurrentSpeed = (data.substring(2, 5)).toInt();
     xValue = (data.substring(5, 9)).toInt();
     yValue = (data.substring(9, 13)).toInt();
 
-    Serial.println(xValue);
-    Serial.println(yValue);
     if(data[13] == '1') zValue = true;
     else zValue = false;
   }
@@ -113,8 +111,9 @@ void community(){
   String TX;
   sprintf(buf, "a)%3d%3d%1d",temp, humid, state);
   TX = buf;
-
+  
   Serial.println(TX);
+  delay(100);
 }
 //
 
@@ -128,7 +127,7 @@ void motor_driver(){
   analogWrite(motorA_speed, 0);
   analogWrite(motorB_speed, 0);
   
-  if(xValue < 100){//left
+  if(xValue < 100 && front_state){//left
     digitalWrite(motorA_front, LOW);
     digitalWrite(motorA_rear, HIGH);
 
@@ -137,7 +136,7 @@ void motor_driver(){
   analogWrite(motorA_speed, CurrentSpeed);
   analogWrite(motorB_speed, CurrentSpeed);
   }
-  if(xValue > 900){//right
+  if(xValue > 900 && front_state){//right
     digitalWrite(motorA_front, HIGH);
     digitalWrite(motorA_rear, LOW);
 
@@ -146,7 +145,7 @@ void motor_driver(){
   analogWrite(motorA_speed, CurrentSpeed);
   analogWrite(motorB_speed, CurrentSpeed);
   }
-  if(yValue < 100){//front
+  if(yValue < 100 && front_state){//front
     digitalWrite(motorA_front, HIGH);
     digitalWrite(motorA_rear, LOW);
 
@@ -181,7 +180,9 @@ void ultrasonic(){
   distance = ((float)(340 * duration) / 10000 ) / 2; //cm
 
   if(distance < 30)
-    CurrentSpeed = 0;
+    front_state = true;
+  else
+    front_state = false;
 }
 //
   
@@ -197,6 +198,8 @@ void CdS(){
     digitalWrite(pin_led, HIGH);
   else
     digitalWrite(pin_led, LOW);
+
+    delay(10);
 }
 //
   
